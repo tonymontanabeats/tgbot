@@ -5,6 +5,8 @@ import random
 import textwrap
 import re
 import os
+import threading
+from flask import Flask
 
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
@@ -12,6 +14,13 @@ bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 shuffled_phrases = []
 current_index = 0
 BOT_USERNAME = 'djprognoz_bot'  # замени на своего
+
+# Flask-приложение
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return 'Бот работает!'
 
 
 @bot.message_handler(commands=['start'])
@@ -144,5 +153,9 @@ def future(message):
 
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
+def start_bot():
+    bot.polling(none_stop=True)
 
-bot.polling(none_stop=True)
+if __name__ == "__main__":
+    threading.Thread(target=start_bot).start()
+    app.run(host="0.0.0.0", port=10000)
