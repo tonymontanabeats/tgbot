@@ -6,13 +6,26 @@ import textwrap
 import re
 import os
 
-bot = telebot.TeleBot('7443144914:AAH6wRzz8cYqk09kgxz78Dwq74uajw-7_iM')
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # Глобальные переменные для очереди
 shuffled_phrases = []
 current_index = 0
 BOT_USERNAME = 'djprognoz_bot'  # замени на своего
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id,
+                     'Привет! Я - музыкальный ясновидящий бот и могу предсказывать будущее. Могу погадать в личке через команду /future, но лучше всего вызывай меня в групповом чате с твоими друзьями через @djprognoz_bot')
+
+
+def load_and_shuffle_phrases():
+    with open('phrases.txt', 'r', encoding='UTF-8') as file:
+        phrases = [line.strip() for line in file if line.strip()]
+    random.shuffle(phrases)
+    return phrases
+
 
 @bot.inline_handler(func=lambda query: True)
 def inline_query_handler(inline_query):
@@ -71,11 +84,6 @@ def inline_query_handler(inline_query):
     except Exception as e:
         print(e)
 
-def load_and_shuffle_phrases():
-    with open('phrases.txt', 'r', encoding='UTF-8') as file:
-        phrases = [line.strip() for line in file if line.strip()]
-    random.shuffle(phrases)
-    return phrases
 
 @bot.message_handler(commands=['future'])
 def future(message):
@@ -135,7 +143,6 @@ def future(message):
     final_message = f"{greeting}\n\n{formatted}{music_block}"
 
     bot.reply_to(message, final_message, parse_mode='Markdown')
-
 
 
 bot.polling(none_stop=True)
