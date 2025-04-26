@@ -158,4 +158,4 @@ def start_bot():
 
 if __name__ == "__main__":
     threading.Thread(target=start_bot).start()
-    app.run(host="0.0.0.0", port=10000)
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 10000)))).start()
