@@ -122,6 +122,6 @@ def future(message):
 
 if __name__ == "__main__":
     bot.remove_webhook()
-    bot.set_webhook(url='https://tgbot-7xzi.onrender.com/' + bot.token)
-    port = int(os.environ.get('PORT', 5007))
+    bot.set_webhook(url='https://1223-212-47-244-142.ngrok-free.app/' + bot.token)  # Замени на URL от Ngrok
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port)
