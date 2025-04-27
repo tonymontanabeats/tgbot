@@ -5,29 +5,35 @@ import random
 import re
 import os
 
+# Токен бота
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-BOT_USERNAME = 'djprognoz_bot'  # твой username без @
+# Username бота без @
+BOT_USERNAME = 'djprognoz_bot'
+
+# Инициализация Flask-приложения
 app = Flask(__name__)
 
-# Главная страница
+# Главная страница для проверки
 @app.route('/')
 def index():
     return 'Бот работает!'
 
-# Webhook-приёмник
+# Обработчик webhook'а
 @app.route('/' + bot.token, methods=['POST'])
 def webhook():
     update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
     bot.process_new_updates([update])
     return "!", 200
 
+# Функция для загрузки и перемешивания фраз
 def load_and_shuffle_phrases():
     with open('phrases.txt', 'r', encoding='UTF-8') as file:
         phrases = [line.strip() for line in file if line.strip()]
     random.shuffle(phrases)
     return phrases
 
+# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(
@@ -37,6 +43,7 @@ def start(message):
         'в групповом чате через @djprognoz_bot'
     )
 
+# Обработчик инлайн-запросов
 @bot.inline_handler(func=lambda query: True)
 def inline_query_handler(inline_query):
     try:
@@ -81,6 +88,7 @@ def inline_query_handler(inline_query):
     except Exception as e:
         print(e)
 
+# Обработчик команды /future
 @bot.message_handler(commands=['future'])
 def future(message):
     chat_type = message.chat.type
@@ -120,5 +128,9 @@ def future(message):
     final_message = f"{greeting}\n\n{formatted}{music_block}"
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
+# Запуск сервера
 if __name__ == "__main__":
-    bot.polling(none_stop=True)
+    bot.remove_webhook()
+    bot.set_webhook(url='https://a19e-212-47-244-142.ngrok-free.app/' + bot.token)  # <-- Вставь сюда свой актуальный URL от ngrok
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port)
