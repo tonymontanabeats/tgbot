@@ -121,7 +121,4 @@ def future(message):
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
 if __name__ == "__main__":
-    bot.remove_webhook()
-    bot.set_webhook(url='https://a19e-212-47-244-142.ngrok-free.app' + bot.token)  # Замени на URL от Ngrok
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port)
+    bot.polling(none_stop=True)
