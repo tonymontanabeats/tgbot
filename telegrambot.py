@@ -3,12 +3,21 @@ from telebot import types
 import random
 import re
 import os
+from flask import Flask, request
 
 # Токен бота
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # Username бота без @
 BOT_USERNAME = 'djprognoz_bot'
+
+# Инициализация Flask-приложения
+app = Flask(__name__)
+
+# Главная страница для проверки
+@app.route('/')
+def index():
+    return 'Бот работает!'
 
 # Функция для загрузки и перемешивания фраз
 def load_and_shuffle_phrases():
