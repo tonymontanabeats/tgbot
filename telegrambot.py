@@ -1,6 +1,5 @@
 import telebot
 from telebot import types
-from flask import Flask, request
 import random
 import re
 import os
@@ -10,21 +9,6 @@ bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # Username бота без @
 BOT_USERNAME = 'djprognoz_bot'
-
-# Инициализация Flask-приложения
-app = Flask(__name__)
-
-# Главная страница для проверки
-@app.route('/')
-def index():
-    return 'Бот работает!'
-
-# Обработчик webhook'а
-@app.route('/' + bot.token, methods=['POST'])
-def webhook():
-    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
-    bot.process_new_updates([update])
-    return "!", 200
 
 # Функция для загрузки и перемешивания фраз
 def load_and_shuffle_phrases():
@@ -128,9 +112,6 @@ def future(message):
     final_message = f"{greeting}\n\n{formatted}{music_block}"
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
-# Запуск сервера
+# Запуск пулинга
 if __name__ == "__main__":
-    bot.remove_webhook()
-    bot.set_webhook(url='https://a19e-212-47-244-142.ngrok-free.app/' + bot.token)  # <-- Вставь сюда свой актуальный URL от ngrok
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port)
+    bot.polling(none_stop=True)
