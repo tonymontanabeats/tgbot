@@ -3,21 +3,12 @@ from telebot import types
 import random
 import re
 import os
-from flask import Flask, request
 
 # Токен бота
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
 # Username бота без @
 BOT_USERNAME = 'djprognoz_bot'
-
-# Инициализация Flask-приложения
-app = Flask(__name__)
-
-# Главная страница для проверки
-@app.route('/')
-def index():
-    return 'Бот работает!'
 
 # Функция для загрузки и перемешивания фраз
 def load_and_shuffle_phrases():
@@ -55,15 +46,9 @@ def inline_query_handler(inline_query):
             main_text = random_phrase
 
         sentences = re.split(r'(?<=[.!?]) +', main_text)
-        if len(sentences) > 1:
-            main = " ".join(sentences[:-1]).strip()
-            last = sentences[-1].strip()
-            formatted = f"{main}{last}"
-        else:
-            formatted = f"{main_text}"
+        formatted = " ".join(sentences) if len(sentences) > 1 else main_text
 
         music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
-
         text = f"🔮 Вот предсказание для @{user_name}:\n\n{formatted}{music_block}"
 
         result = types.InlineQueryResultArticle(
@@ -89,12 +74,10 @@ def future(message):
     command_text = message.text.lower()
     user_name = user.username or user.first_name or "гость"
 
-    if chat_type in ['group', 'supergroup']:
-        if f'/future@{BOT_USERNAME.lower()}' not in command_text:
-            return
+    if chat_type in ['group', 'supergroup'] and f'/future@{BOT_USERNAME.lower()}' not in command_text:
+        return
 
     greeting = f"🔮 @{user_name}, Предсказание для тебя:" if chat_type == "private" else f"🔮 Предсказание для @{user_name} в группе"
-
     phrases = load_and_shuffle_phrases()
     random_phrase = random.choice(phrases)
 
@@ -109,18 +92,13 @@ def future(message):
         main_text = random_phrase
 
     sentences = re.split(r'(?<=[.!?]) +', main_text)
-    if len(sentences) > 1:
-        main = " ".join(sentences[:-1]).strip()
-        last = sentences[-1].strip()
-        formatted = f"{main}{last}"
-    else:
-        formatted = f"{main_text}"
-
+    formatted = " ".join(sentences) if len(sentences) > 1 else main_text
     music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
 
     final_message = f"{greeting}\n\n{formatted}{music_block}"
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
-# Запуск пулинга
+# Запуск бота
 if __name__ == "__main__":
+    print("Бот запущен...")
     bot.polling(none_stop=True)
