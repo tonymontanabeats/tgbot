@@ -1,121 +1,103 @@
 import telebot
 from telebot import types
+from flask import Flask, request
+import os
 import random
 import re
-import os
 
-# Токен бота
+# Токен Telegram-бота
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_USERNAME = "djprognoz_bot"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Username бота без @
-BOT_USERNAME = 'djprognoz_bot'
+# Flask-приложение
+app = Flask(__name__)
 
-# Функция для загрузки и перемешивания фраз
+@app.route('/')
+def home():
+    return "Бот работает!"
+
+@app.route(f"/{BOT_TOKEN}", methods=['POST'])
+def receive_update():
+    json_str = request.get_data().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
+
+# Загрузка фраз
 def load_and_shuffle_phrases():
-    with open('phrases.txt', 'r', encoding='UTF-8') as file:
-        phrases = [line.strip() for line in file if line.strip()]
-    random.shuffle(phrases)
-    return phrases
+    with open('phrases.txt', 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f if line.strip()]
+    random.shuffle(lines)
+    return lines
 
-# Обработчик команды /start
+# Команда /start
 @bot.message_handler(commands=['start'])
-def start(message):
+def start_handler(message):
     bot.send_message(
         message.chat.id,
-        'Привет! Я - музыкальный ясновидящий бот и могу предсказывать будущее. '
-        'Могу погадать в личке через команду /future, но лучше всего вызывай меня '
-        'в групповом чате через @djprognoz_bot'
+        'Привет! Я музыкальный ясновидящий. Используй /future или @djprognoz_bot в группе.'
     )
 
-# Обработчик команды /future
+# Команда /future
 @bot.message_handler(commands=['future'])
-def future(message):
-    chat_type = message.chat.type
-    user = message.from_user
-    command_text = message.text.lower()
-    user_name = user.username or user.first_name or "гость"
-
-    if chat_type in ['group', 'supergroup']:
-        if f'/future@{BOT_USERNAME.lower()}' not in command_text:
-            return
-
-    greeting = f"🔮 @{user_name}, Предсказание для тебя:" if chat_type == "private" else f"🔮 Предсказание для @{user_name} в группе"
+def future_handler(message):
+    user_name = message.from_user.username or message.from_user.first_name or "гость"
+    greeting = f"🔮 @{user_name}, твоё предсказание:\n\n"
 
     phrases = load_and_shuffle_phrases()
-    random_phrase = random.choice(phrases)
+    phrase = random.choice(phrases)
 
-    music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', random_phrase, re.IGNORECASE)
+    music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', phrase, re.IGNORECASE)
     if music_match:
         track_name = music_match.group(2).strip()
         track_link = music_match.group(3).strip()
-        main_text = random_phrase[:music_match.start()].strip()
+        phrase = phrase[:music_match.start()].strip()
+        music = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})"
     else:
-        track_name = ""
-        track_link = ""
-        main_text = random_phrase
+        music = ""
 
-    sentences = re.split(r'(?<=[.!?]) +', main_text)
-    if len(sentences) > 1:
-        main = " ".join(sentences[:-1]).strip()
-        last = sentences[-1].strip()
-        formatted = f"{main}{last}"
-    else:
-        formatted = f"{main_text}"
+    final_text = f"{greeting}{phrase}{music}"
+    bot.send_message(message.chat.id, final_text, parse_mode="Markdown")
 
-    music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
-
-    final_message = f"{greeting}\n\n{formatted}{music_block}"
-    bot.reply_to(message, final_message, parse_mode='Markdown')
-
-# Обработчик инлайн-запросов
+# Обработчик inline
 @bot.inline_handler(func=lambda query: True)
-def inline_query_handler(inline_query):
+def inline_handler(query):
     try:
-        user_name = inline_query.from_user.username or inline_query.from_user.first_name or "гость"
+        user_name = query.from_user.username or query.from_user.first_name or "гость"
         phrases = load_and_shuffle_phrases()
-        random_phrase = random.choice(phrases)
+        phrase = random.choice(phrases)
 
-        music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', random_phrase, re.IGNORECASE)
+        music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', phrase, re.IGNORECASE)
         if music_match:
             track_name = music_match.group(2).strip()
             track_link = music_match.group(3).strip()
-            main_text = random_phrase[:music_match.start()].strip()
+            phrase = phrase[:music_match.start()].strip()
+            music = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})"
         else:
-            track_name = ""
-            track_link = ""
-            main_text = random_phrase
+            music = ""
 
-        sentences = re.split(r'(?<=[.!?]) +', main_text)
-        if len(sentences) > 1:
-            main = " ".join(sentences[:-1]).strip()
-            last = sentences[-1].strip()
-            formatted = f"{main}{last}"
-        else:
-            formatted = f"{main_text}"
-
-        music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
-
-        text = f"🔮 Вот предсказание для @{user_name}:\n\n{formatted}{music_block}"
+        result_text = f"🔮 Предсказание для @{user_name}:\n\n{phrase}{music}"
 
         result = types.InlineQueryResultArticle(
             id='1',
             title="Получить предсказание",
             input_message_content=types.InputTextMessageContent(
-                message_text=text,
-                parse_mode='Markdown'
+                message_text=result_text,
+                parse_mode="Markdown"
             ),
-            description="Нажми, чтобы получить предсказание",
+            description="Жми, чтобы узнать будущее",
             thumbnail_url="https://i.imgur.com/4M34hi2.png"
         )
-
-        bot.answer_inline_query(inline_query.id, [result], cache_time=1)
+        bot.answer_inline_query(query.id, [result], cache_time=1)
     except Exception as e:
         print(e)
 
+# Установка webhook при запуске
 if __name__ == "__main__":
+    # Убедись, что твой Render-домен доступен как переменная среды WEBHOOK_URL
+    webhook_url = f"{os.getenv('WEBHOOK_URL')}/{BOT_TOKEN}"
     bot.remove_webhook()
-    import time
-    time.sleep(1)
-    bot.polling(none_stop=True)
-
+    bot.set_webhook(url=webhook_url)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host="0.0.0.0", port=port)
