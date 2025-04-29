@@ -111,6 +111,9 @@ def future(message):
     final_message = f"{greeting}\n\n{formatted}{music_block}"
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
+# Удаление вебхука перед запуском пулинга
+bot.remove_webhook()
+
 # Запуск пулинга
 if __name__ == "__main__":
     bot.polling(none_stop=True)
