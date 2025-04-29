@@ -98,7 +98,8 @@ def future(message):
     final_message = f"{greeting}\n\n{formatted}{music_block}"
     bot.reply_to(message, final_message, parse_mode='Markdown')
 
-# Запуск бота
 if __name__ == "__main__":
+    bot.remove_webhook()  # ОТКЛЮЧАЕМ вебхук перед polling
     print("Бот запущен...")
     bot.polling(none_stop=True)
+
