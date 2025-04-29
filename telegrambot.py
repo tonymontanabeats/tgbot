@@ -93,11 +93,5 @@ def inline_handler(query):
     except Exception as e:
         print(e)
 
-# Установка webhook при запуске
-if __name__ == "__main__":
-    # Убедись, что твой Render-домен доступен как переменная среды WEBHOOK_URL
-    webhook_url = f"{os.getenv('WEBHOOK_URL')}/{BOT_TOKEN}"
-    bot.remove_webhook()
-    bot.set_webhook(url=webhook_url)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host="0.0.0.0", port=port)
+bot.remove_webhook()
+bot.set_webhook(url=f"{os.getenv('WEBHOOK_URL')}/{BOT_TOKEN}")
