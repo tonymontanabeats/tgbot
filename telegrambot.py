@@ -5,7 +5,8 @@ import re
 import os
 
 # Токен бота
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot(BOT_TOKEN)
 
 # Username бота без @
 BOT_USERNAME = 'djprognoz_bot'
@@ -27,6 +28,46 @@ def start(message):
         'в групповом чате через @djprognoz_bot'
     )
 
+# Обработчик команды /future
+@bot.message_handler(commands=['future'])
+def future(message):
+    chat_type = message.chat.type
+    user = message.from_user
+    command_text = message.text.lower()
+    user_name = user.username or user.first_name or "гость"
+
+    if chat_type in ['group', 'supergroup']:
+        if f'/future@{BOT_USERNAME.lower()}' not in command_text:
+            return
+
+    greeting = f"🔮 @{user_name}, Предсказание для тебя:" if chat_type == "private" else f"🔮 Предсказание для @{user_name} в группе"
+
+    phrases = load_and_shuffle_phrases()
+    random_phrase = random.choice(phrases)
+
+    music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', random_phrase, re.IGNORECASE)
+    if music_match:
+        track_name = music_match.group(2).strip()
+        track_link = music_match.group(3).strip()
+        main_text = random_phrase[:music_match.start()].strip()
+    else:
+        track_name = ""
+        track_link = ""
+        main_text = random_phrase
+
+    sentences = re.split(r'(?<=[.!?]) +', main_text)
+    if len(sentences) > 1:
+        main = " ".join(sentences[:-1]).strip()
+        last = sentences[-1].strip()
+        formatted = f"{main}{last}"
+    else:
+        formatted = f"{main_text}"
+
+    music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
+
+    final_message = f"{greeting}\n\n{formatted}{music_block}"
+    bot.reply_to(message, final_message, parse_mode='Markdown')
+
 # Обработчик инлайн-запросов
 @bot.inline_handler(func=lambda query: True)
 def inline_query_handler(inline_query):
@@ -46,9 +87,15 @@ def inline_query_handler(inline_query):
             main_text = random_phrase
 
         sentences = re.split(r'(?<=[.!?]) +', main_text)
-        formatted = " ".join(sentences) if len(sentences) > 1 else main_text
+        if len(sentences) > 1:
+            main = " ".join(sentences[:-1]).strip()
+            last = sentences[-1].strip()
+            formatted = f"{main}{last}"
+        else:
+            formatted = f"{main_text}"
 
         music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
+
         text = f"🔮 Вот предсказание для @{user_name}:\n\n{formatted}{music_block}"
 
         result = types.InlineQueryResultArticle(
@@ -66,40 +113,7 @@ def inline_query_handler(inline_query):
     except Exception as e:
         print(e)
 
-# Обработчик команды /future
-@bot.message_handler(commands=['future'])
-def future(message):
-    chat_type = message.chat.type
-    user = message.from_user
-    command_text = message.text.lower()
-    user_name = user.username or user.first_name or "гость"
-
-    if chat_type in ['group', 'supergroup'] and f'/future@{BOT_USERNAME.lower()}' not in command_text:
-        return
-
-    greeting = f"🔮 @{user_name}, Предсказание для тебя:" if chat_type == "private" else f"🔮 Предсказание для @{user_name} в группе"
-    phrases = load_and_shuffle_phrases()
-    random_phrase = random.choice(phrases)
-
-    music_match = re.search(r'(Музыка:|Music:)\s*(.*?)\s*\|\s*(https?://[^\s]+)', random_phrase, re.IGNORECASE)
-    if music_match:
-        track_name = music_match.group(2).strip()
-        track_link = music_match.group(3).strip()
-        main_text = random_phrase[:music_match.start()].strip()
-    else:
-        track_name = ""
-        track_link = ""
-        main_text = random_phrase
-
-    sentences = re.split(r'(?<=[.!?]) +', main_text)
-    formatted = " ".join(sentences) if len(sentences) > 1 else main_text
-    music_block = f"\n\n*Музыка: {track_name}*\n[🎧 Послушать трек]({track_link})" if track_name and track_link else ""
-
-    final_message = f"{greeting}\n\n{formatted}{music_block}"
-    bot.reply_to(message, final_message, parse_mode='Markdown')
-
+# Запуск бота через polling
 if __name__ == "__main__":
-    bot.remove_webhook()  # ОТКЛЮЧАЕМ вебхук перед polling
-    print("Бот запущен...")
+    bot.remove_webhook()
     bot.polling(none_stop=True)
-
