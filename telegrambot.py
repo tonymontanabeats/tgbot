@@ -113,7 +113,9 @@ def inline_query_handler(inline_query):
     except Exception as e:
         print(e)
 
-# Запуск бота через polling
 if __name__ == "__main__":
     bot.remove_webhook()
+    import time
+    time.sleep(1)
     bot.polling(none_stop=True)
+
